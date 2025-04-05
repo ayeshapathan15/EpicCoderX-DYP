@@ -3,13 +3,13 @@ import os
 import re
 import fitz  # PyMuPDF
 import numpy as np
-import tempfile
 from typing import List, Dict, Tuple, Any, Optional
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
 import logging
 import json
+import tempfile
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -77,7 +77,8 @@ def extract_medical_entities(text: str) -> Dict[str, List[str]]:
         "conditions": [],
         "treatments": [],
         "measurements": [],
-        "findings": []
+        "findings": [],
+        "recovery_indicators": []
     }
     
     # Simple patterns for demonstration
@@ -88,7 +89,7 @@ def extract_medical_entities(text: str) -> Dict[str, List[str]]:
     
     treatment_patterns = [
         r"(?i)(treated with|prescribed|administered) ([A-Za-z\s]+)",
-        r"(?i)(surgery|medication|therapy|treatment|procedure)"
+        r"(?i)(surgery|medication|therapy|treatment|procedure|immobilization)"
     ]
     
     measurement_patterns = [
@@ -99,6 +100,14 @@ def extract_medical_entities(text: str) -> Dict[str, List[str]]:
     finding_patterns = [
         r"(?i)(observed|noted|found|revealed|shows) ([A-Za-z\s]+)",
         r"(?i)(normal|abnormal|improved|worsened|unchanged)"
+    ]
+    
+    # New patterns specifically for recovery indicators
+    recovery_patterns = [
+        r"(?i)(healing|recovery|improvement|progress|regrowth|regeneration)",
+        r"(?i)(callus formation|bone regrowth|signs of healing)",
+        r"(?i)(partial recovery|early healing|slight improvement)",
+        r"(?i)(decreased pain|increased mobility|better function)"
     ]
     
     # Extract conditions
@@ -125,6 +134,16 @@ def extract_medical_entities(text: str) -> Dict[str, List[str]]:
         if matches:
             entities["findings"].extend([match[-1].strip() for match in matches])
     
+    # Extract recovery indicators
+    for pattern in recovery_patterns:
+        matches = re.findall(pattern, text)
+        if matches:
+            # For recovery indicators, we want the full match
+            if isinstance(matches[0], tuple):
+                entities["recovery_indicators"].extend([match[-1].strip() for match in matches])
+            else:
+                entities["recovery_indicators"].extend([match.strip() for match in matches])
+    
     # Remove duplicates
     for key in entities:
         entities[key] = list(set(entities[key]))
@@ -135,7 +154,8 @@ def identify_changes(old_entities: Dict[str, List[str]], new_entities: Dict[str,
     """Identify changes between two sets of medical entities"""
     changes = {
         "added": {},
-        "removed": {}
+        "removed": {},
+        "persisting": {}
     }
     
     for category in old_entities:
@@ -150,8 +170,178 @@ def identify_changes(old_entities: Dict[str, List[str]], new_entities: Dict[str,
                   if item not in new_entities.get(category, [])]
         if removed:
             changes["removed"][category] = removed
+            
+        # Find persisting entities (in both old and new)
+        persisting = [item for item in old_entities.get(category, [])
+                     if item in new_entities.get(category, [])]
+        if persisting:
+            changes["persisting"][category] = persisting
     
     return changes
+
+def extract_severity_indicators(text: str) -> Dict[str, List[str]]:
+    """Extract indicators of severity and improvement from text"""
+    indicators = {
+        "severity": [],
+        "improvement": []
+    }
+    
+    # Severity patterns
+    severity_patterns = [
+        r"(?i)(severe|significant|major|extensive|substantial|complete) (fracture|break|damage|injury|disruption)",
+        r"(?i)(shows|reveals|indicates) a (?:severe|significant|major) (fracture|break|damage)"
+    ]
+    
+    # Improvement patterns
+    improvement_patterns = [
+        r"(?i)(minor|slight|partial|early|promising) (signs of healing|improvement|recovery|bone regrowth)",
+        r"(?i)(callus formation|bone regeneration|healing process)",
+        r"(?i)(improved|better|recovered|healed) (partially|slightly|significantly|completely)"
+    ]
+    
+    # Extract severity indicators
+    for pattern in severity_patterns:
+        matches = re.findall(pattern, text)
+        if matches:
+            indicators["severity"].extend([" ".join(match).strip() for match in matches])
+    
+    # Extract improvement indicators
+    for pattern in improvement_patterns:
+        matches = re.findall(pattern, text)
+        if matches:
+            indicators["improvement"].extend([" ".join(match).strip() for match in matches])
+    
+    # Remove duplicates
+    for key in indicators:
+        indicators[key] = list(set(indicators[key]))
+    
+    return indicators
+
+def estimate_recovery_percentage(old_text: str, new_text: str, changes: Dict) -> Dict:
+    """
+    Estimate recovery percentage based on textual analysis and entity changes
+    
+    This is a more advanced function that analyzes text for recovery indicators
+    and provides percentage estimates based on them
+    """
+    recovery_metrics = {
+        "overall_recovery_percentage": 0,
+        "bone_healing_percentage": 0, 
+        "symptoms_improvement_percentage": 0,
+        "key_indicators": []
+    }
+    
+    # Extract severity and improvement indicators
+    old_indicators = extract_severity_indicators(old_text)
+    new_indicators = extract_severity_indicators(new_text)
+    
+    # Count recovery indicators
+    recovery_indicators = changes.get("added", {}).get("recovery_indicators", [])
+    n_recovery_indicators = len(recovery_indicators)
+    
+    # Look for specific phrases indicating recovery percentages
+    percentage_patterns = [
+        r"(\d+)(?:\s*)%(?:\s*)(healing|recovery|improvement|progress)",
+        r"(healing|recovery|improvement|progress)(?:\s*)(?:is|at)(?:\s*)(\d+)(?:\s*)%"
+    ]
+    
+    explicit_percentages = []
+    for pattern in percentage_patterns:
+        for text in [old_text, new_text]:
+            matches = re.findall(pattern, text)
+            for match in matches:
+                try:
+                    # Extract percentage regardless of pattern order
+                    if match[0].isdigit():
+                        percentage = int(match[0])
+                        indicator = match[1]
+                    else:
+                        percentage = int(match[1])
+                        indicator = match[0]
+                    
+                    explicit_percentages.append((percentage, indicator))
+                except (ValueError, IndexError):
+                    continue
+    
+    # If we found explicit percentages, use them
+    if explicit_percentages:
+        total = sum(pct for pct, _ in explicit_percentages)
+        if explicit_percentages:
+            recovery_metrics["overall_recovery_percentage"] = min(round(total / len(explicit_percentages)), 100)
+            recovery_metrics["key_indicators"] = [f"{pct}% {ind}" for pct, ind in explicit_percentages]
+    
+    # Otherwise, calculate based on heuristics
+    else:
+        # Basic indicators from improvements
+        improvement_score = 0
+        
+        # Check for early stage healing indicators
+        early_healing = any(re.search(r"early|slight|minor", i) for i in new_indicators.get("improvement", []))
+        if early_healing:
+            improvement_score += 20
+            recovery_metrics["key_indicators"].append("Early stage healing detected")
+        
+        # Check for partial recovery indicators
+        partial_recovery = any(re.search(r"partial|some|better", i) for i in new_indicators.get("improvement", []))
+        if partial_recovery:
+            improvement_score += 40
+            recovery_metrics["key_indicators"].append("Partial recovery indicators found")
+        
+        # Check for significant recovery indicators
+        significant_recovery = any(re.search(r"significant|substantial|major", i) for i in new_indicators.get("improvement", []))
+        if significant_recovery:
+            improvement_score += 60
+            recovery_metrics["key_indicators"].append("Significant recovery indicators found")
+        
+        # If we found callus formation specifically (important in bone healing)
+        callus_formation = any(re.search(r"callus formation", text) for text in [new_text])
+        if callus_formation:
+            improvement_score += 25
+            recovery_metrics["bone_healing_percentage"] = 25
+            recovery_metrics["key_indicators"].append("Callus formation detected (25% bone healing)")
+        
+        # If severity decreased in follow-up
+        if len(old_indicators.get("severity", [])) > len(new_indicators.get("severity", [])):
+            improvement_score += 15
+            recovery_metrics["key_indicators"].append("Decreased severity indicators")
+        
+        # Adjust based on recovery indicators found
+        if n_recovery_indicators > 0:
+            adjustment = min(n_recovery_indicators * 10, 30)  # Cap at 30%
+            improvement_score += adjustment
+            recovery_metrics["key_indicators"].append(f"Found {n_recovery_indicators} recovery indicators (+{adjustment}%)")
+        
+        # Set overall recovery percentage
+        recovery_metrics["overall_recovery_percentage"] = min(improvement_score, 100)
+        
+        # Set bone healing percentage if not already set
+        if recovery_metrics["bone_healing_percentage"] == 0:
+            # Look for specific bone healing indicators
+            bone_healing_indicators = [
+                i for i in new_indicators.get("improvement", []) 
+                if re.search(r"bone|fracture|callus|regrowth", i)
+            ]
+            
+            if bone_healing_indicators:
+                recovery_metrics["bone_healing_percentage"] = min(len(bone_healing_indicators) * 15, 100)
+        
+        # Estimate symptoms improvement
+        symptom_improvements = [
+            i for i in new_indicators.get("improvement", [])
+            if re.search(r"pain|function|mobility|movement", i)
+        ]
+        
+        if symptom_improvements:
+            recovery_metrics["symptoms_improvement_percentage"] = min(len(symptom_improvements) * 20, 100)
+    
+    # If no improvement percentage has been calculated yet, derive from overall
+    if recovery_metrics["bone_healing_percentage"] == 0:
+        recovery_metrics["bone_healing_percentage"] = max(0, recovery_metrics["overall_recovery_percentage"] - 5)
+    
+    if recovery_metrics["symptoms_improvement_percentage"] == 0:
+        recovery_metrics["symptoms_improvement_percentage"] = max(0, recovery_metrics["overall_recovery_percentage"] - 10)
+    
+    return recovery_metrics
 
 def generate_progress_report(old_doc: str, new_doc: str, similarity: float, changes: Dict) -> Dict:
     """Generate a progress report based on document comparison"""
@@ -160,12 +350,17 @@ def generate_progress_report(old_doc: str, new_doc: str, similarity: float, chan
         "similarity_interpretation": "",
         "changes": changes,
         "progress_summary": "",
+        "recovery_metrics": {},
         "treatment_recommendations": []
     }
     
+    # Calculate recovery metrics
+    recovery_metrics = estimate_recovery_percentage(old_doc, new_doc, changes)
+    report["recovery_metrics"] = recovery_metrics
+    
     # Interpret similarity score
     if similarity > 0.9:
-        report["similarity_interpretation"] = "The documents are highly similar, suggesting minimal changes in condition."
+        report["similarity_interpretation"] = "The documents are highly similar, but they may still contain important differences in medical details."
     elif similarity > 0.7:
         report["similarity_interpretation"] = "The documents show moderate similarity, indicating some changes in the patient's condition."
     elif similarity > 0.5:
@@ -178,9 +373,19 @@ def generate_progress_report(old_doc: str, new_doc: str, similarity: float, chan
     removed_conditions = changes["removed"].get("conditions", [])
     added_findings = changes["added"].get("findings", [])
     removed_findings = changes["removed"].get("findings", [])
+    recovery_indicators = changes["added"].get("recovery_indicators", [])
     
     # Generate progress summary
     summary_parts = []
+    
+    if recovery_metrics["overall_recovery_percentage"] > 0:
+        summary_parts.append(f"Patient shows approximately {recovery_metrics['overall_recovery_percentage']}% overall recovery from the initial condition.")
+    
+    if recovery_metrics["bone_healing_percentage"] > 0:
+        summary_parts.append(f"Bone healing is estimated at {recovery_metrics['bone_healing_percentage']}%.")
+    
+    if recovery_metrics["symptoms_improvement_percentage"] > 0:
+        summary_parts.append(f"Symptoms have improved by approximately {recovery_metrics['symptoms_improvement_percentage']}%.")
     
     if removed_conditions:
         summary_parts.append(f"Previously identified conditions no longer present: {', '.join(removed_conditions)}.")
@@ -194,20 +399,34 @@ def generate_progress_report(old_doc: str, new_doc: str, similarity: float, chan
     if added_findings:
         summary_parts.append(f"New findings: {', '.join(added_findings)}.")
     
+    if recovery_indicators:
+        summary_parts.append(f"Positive recovery indicators: {', '.join(recovery_indicators)}.")
+    
     if summary_parts:
         report["progress_summary"] = " ".join(summary_parts)
     else:
         report["progress_summary"] = "No significant changes in conditions or findings were detected."
     
-    # Generate treatment recommendations (simplified for demonstration)
-    if added_conditions or added_findings:
-        report["treatment_recommendations"].append("Further evaluation recommended for newly identified conditions/findings.")
+    # Generate treatment recommendations based on recovery percentage
+    recovery_pct = recovery_metrics["overall_recovery_percentage"]
     
-    if removed_conditions or removed_findings:
-        report["treatment_recommendations"].append("Current treatment approach may be effective; consider continuing current regimen.")
+    if recovery_pct < 25:
+        report["treatment_recommendations"].append("Limited recovery observed. Consider reevaluating current treatment approach.")
+    elif recovery_pct < 50:
+        report["treatment_recommendations"].append("Early stages of recovery detected. Continue current treatment with close monitoring.")
+    elif recovery_pct < 75:
+        report["treatment_recommendations"].append("Moderate recovery progress. Continue current treatment regimen with periodic follow-ups.")
+    else:
+        report["treatment_recommendations"].append("Significant recovery observed. Consider transitioning to maintenance therapy or rehabilitation.")
     
-    if not report["treatment_recommendations"]:
-        report["treatment_recommendations"].append("No specific treatment changes recommended based on document comparison.")
+    # Add specific recommendations based on bone healing
+    bone_healing_pct = recovery_metrics["bone_healing_percentage"]
+    if bone_healing_pct < 30:
+        report["treatment_recommendations"].append("Limited bone healing observed. Maintain immobilization and consider nutritional supplements to support bone formation.")
+    elif bone_healing_pct < 60:
+        report["treatment_recommendations"].append("Moderate bone healing progress. Consider gradual weight-bearing exercises if appropriate for this stage.")
+    else:
+        report["treatment_recommendations"].append("Advanced bone healing observed. Consider physical therapy to restore full functionality.")
     
     return report
 
