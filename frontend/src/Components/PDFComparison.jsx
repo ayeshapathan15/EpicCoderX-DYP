@@ -29,6 +29,154 @@ const PDFComparison = () => {
     setFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
   };
 
+  const transformApiResponse = (apiData) => {
+    // Basic structure for transformed data
+    const transformedData = {
+      summary: {
+        similarityScore: Math.round(apiData.overall_similarity * 100),
+        keyFindings: [],
+        recommendations: []
+      },
+      differences: []
+    };
+
+    // Add progress summary to key findings
+    if (apiData.progress_report && apiData.progress_report.progress_summary) {
+      transformedData.summary.keyFindings.push(apiData.progress_report.progress_summary);
+    }
+
+    // Add similarity interpretation to key findings
+    if (apiData.progress_report && apiData.progress_report.similarity_interpretation) {
+      transformedData.summary.keyFindings.push(apiData.progress_report.similarity_interpretation);
+    }
+
+    // Add recovery metrics to key findings if they exist
+    if (apiData.progress_report && apiData.progress_report.recovery_metrics) {
+      const metrics = apiData.progress_report.recovery_metrics;
+      
+      if (metrics.overall_recovery_percentage > 0) {
+        transformedData.summary.keyFindings.push(`Overall recovery: ${metrics.overall_recovery_percentage}%`);
+      }
+      
+      if (metrics.bone_healing_percentage > 0) {
+        transformedData.summary.keyFindings.push(`Bone healing progress: ${metrics.bone_healing_percentage}%`);
+      }
+      
+      if (metrics.symptoms_improvement_percentage > 0) {
+        transformedData.summary.keyFindings.push(`Symptoms improvement: ${metrics.symptoms_improvement_percentage}%`);
+      }
+      
+      // Add any key indicators
+      if (metrics.key_indicators && metrics.key_indicators.length > 0) {
+        metrics.key_indicators.forEach(indicator => {
+          transformedData.summary.keyFindings.push(indicator);
+        });
+      }
+    }
+
+    // If no key findings were added, provide a default message
+    if (transformedData.summary.keyFindings.length === 0) {
+      transformedData.summary.keyFindings.push("No specific findings detected in the comparison.");
+    }
+
+    // Add treatment recommendations
+    if (apiData.progress_report && apiData.progress_report.treatment_recommendations) {
+      transformedData.summary.recommendations = apiData.progress_report.treatment_recommendations;
+    }
+
+    // Process differences from changes
+    if (apiData.progress_report && apiData.progress_report.changes) {
+      const changes = apiData.progress_report.changes;
+      
+      // Process added items
+      if (changes.added) {
+        Object.entries(changes.added).forEach(([category, items]) => {
+          if (Array.isArray(items)) {
+            items.forEach(item => {
+              transformedData.differences.push({
+                category,
+                doc1: '',
+                doc2: item,
+                significance: 'high'
+              });
+            });
+          } else if (typeof items === 'object') {
+            Object.entries(items).forEach(([key, value]) => {
+              transformedData.differences.push({
+                category: `${category} - ${key}`,
+                doc1: '',
+                doc2: value,
+                significance: 'high'
+              });
+            });
+          }
+        });
+      }
+      
+      // Process removed items
+      if (changes.removed) {
+        Object.entries(changes.removed).forEach(([category, items]) => {
+          if (Array.isArray(items)) {
+            items.forEach(item => {
+              transformedData.differences.push({
+                category,
+                doc1: item,
+                doc2: '',
+                significance: 'medium'
+              });
+            });
+          } else if (typeof items === 'object') {
+            Object.entries(items).forEach(([key, value]) => {
+              transformedData.differences.push({
+                category: `${category} - ${key}`,
+                doc1: value,
+                doc2: '',
+                significance: 'medium'
+              });
+            });
+          }
+        });
+      }
+      
+      // Add persisting items for completeness if needed
+      if (changes.persisting && Object.keys(changes.persisting).length > 0) {
+        Object.entries(changes.persisting).forEach(([category, items]) => {
+          if (Array.isArray(items)) {
+            items.forEach(item => {
+              transformedData.differences.push({
+                category,
+                doc1: item,
+                doc2: item,
+                significance: 'low'
+              });
+            });
+          } else if (typeof items === 'object') {
+            Object.entries(items).forEach(([key, value]) => {
+              transformedData.differences.push({
+                category: `${category} - ${key}`,
+                doc1: value,
+                doc2: value,
+                significance: 'low'
+              });
+            });
+          }
+        });
+      }
+    }
+
+    // Handle case where no differences were found
+    if (transformedData.differences.length === 0) {
+      transformedData.differences.push({
+        category: 'General',
+        doc1: 'No significant differences detected',
+        doc2: 'No significant differences detected',
+        significance: 'low'
+      });
+    }
+
+    return transformedData;
+  };
+
   const handleCompare = async () => {
     if (files.length < 2) {
       toast.error('At least two PDF files are required for comparison');
@@ -67,8 +215,11 @@ const PDFComparison = () => {
         throw new Error(errorData.error || 'Failed to compare documents');
       }
 
-      const result = await response.json();
-      setComparisonResult(result);
+      const apiResult = await response.json();
+      
+      // Transform API result to match component expectations
+      const transformedResult = transformApiResponse(apiResult);
+      setComparisonResult(transformedResult);
       
       // Store comparison result in MongoDB
       await fetch('/api/store-comparison', {
@@ -77,7 +228,7 @@ const PDFComparison = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          comparisonResult: result,
+          comparisonResult: apiResult,
           documentNames: files.map(file => file.name),
           timestamp: new Date().toISOString(),
         }),
@@ -115,6 +266,48 @@ const PDFComparison = () => {
         {level?.toUpperCase()}
       </span>
     );
+  };
+
+  const handleDownloadReport = () => {
+    if (!comparisonResult) return;
+    
+    // Create report content
+    let reportContent = `PDF Comparison Report\n`;
+    reportContent += `Generated: ${new Date().toLocaleString()}\n\n`;
+    
+    reportContent += `# Summary\n`;
+    reportContent += `Similarity Score: ${comparisonResult.summary.similarityScore}%\n\n`;
+    
+    reportContent += `## Key Findings\n`;
+    comparisonResult.summary.keyFindings.forEach((finding, i) => {
+      reportContent += `${i+1}. ${finding}\n`;
+    });
+    reportContent += `\n`;
+    
+    reportContent += `## Recommendations\n`;
+    comparisonResult.summary.recommendations.forEach((rec, i) => {
+      reportContent += `${i+1}. ${rec}\n`;
+    });
+    reportContent += `\n`;
+    
+    reportContent += `# Differences\n`;
+    comparisonResult.differences.forEach((diff, i) => {
+      reportContent += `## Difference ${i+1} (${diff.significance.toUpperCase()})\n`;
+      reportContent += `Category: ${diff.category}\n`;
+      reportContent += `Document 1: ${diff.doc1}\n`;
+      reportContent += `Document 2: ${diff.doc2}\n\n`;
+    });
+    
+    // Create blob and download
+    const blob = new Blob([reportContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pdf-comparison-report.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -336,7 +529,10 @@ const PDFComparison = () => {
                     </div>
 
                     <div className="flex justify-center mt-6">
-                      <button className="flex items-center px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100">
+                      <button 
+                        onClick={handleDownloadReport}
+                        className="flex items-center px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+                      >
                         <Download size={16} className="mr-2" />
                         Download Full Report
                       </button>
