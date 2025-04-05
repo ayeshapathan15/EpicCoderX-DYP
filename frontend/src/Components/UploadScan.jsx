@@ -16,7 +16,8 @@ import {
   AlertTriangle,
   CheckCircle,
   FileText,
-  Clock
+  Clock,
+  Search
 } from 'lucide-react';
 
 const UploadScan = () => {
@@ -375,84 +376,109 @@ const UploadScan = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="hidden md:flex flex-col w-64 bg-white shadow-md">
+      {/* Sidebar - Updated to match Dashboard */}
+      <motion.div 
+        initial={{ x: -100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="w-64 bg-white shadow-lg hidden md:flex flex-col"
+      >
         <div className="p-4 border-b">
-          <h1 className="text-xl font-bold">MediScan AI</h1>
+          <h2 className="text-xl font-bold text-blue-700">MedAI Scan</h2>
+          <p className="text-sm text-gray-500">AI-Powered Diagnostics</p>
         </div>
         
         <div className="flex flex-col justify-between h-full">
           <div className="p-4">
-            <nav className="space-y-2">
-              {navigationItems.map((item, index) => (
-                <button
-                  key={index}
-                  onClick={item.action}
-                  className={`flex items-center space-x-3 w-full p-3 rounded-md transition ${
-                    item.label === 'Upload Scan' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
-                  }`}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </button>
-              ))}
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+                {user.name ? user.name.charAt(0) : 'D'}
+              </div>
+              <div>
+                <p className="font-medium">{user.name || 'Dr. Jane Smith'}</p>
+                <p className="text-xs text-gray-500">{user.role || 'Radiologist'}</p>
+              </div>
+            </div>
+            
+            <nav>
+              <ul className="space-y-1">
+                {navigationItems.map((item, index) => (
+                  <li key={index}>
+                    <motion.button
+                      whileHover={{ backgroundColor: '#f3f4f6' }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={item.action}
+                      className={`w-full flex items-center space-x-3 p-2 rounded-lg ${index === 1 ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                    >
+                      <span className={index === 1 ? 'text-blue-700' : 'text-gray-500'}>
+                        {item.icon}
+                      </span>
+                      <span>{item.label}</span>
+                    </motion.button>
+                  </li>
+                ))}
+              </ul>
             </nav>
           </div>
           
-          <div className="p-4 border-t">
-            <button
+          <div className="p-4 border-t mt-auto">
+            <motion.button
+              whileHover={{ backgroundColor: '#fee2e2' }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleLogout}
-              className="flex items-center space-x-3 w-full p-3 rounded-md hover:bg-gray-100 transition"
+              className="w-full flex items-center space-x-3 p-2 rounded-lg text-red-600 hover:bg-red-50"
             >
               <LogOut size={20} />
               <span>Logout</span>
-            </button>
+            </motion.button>
           </div>
         </div>
-      </div>
-      
-      {/* Mobile header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 bg-white shadow-sm z-10">
-        <div className="flex items-center justify-between p-4">
-          <h1 className="text-lg font-bold">MediScan AI</h1>
-          <div className="flex items-center space-x-4">
-            <button className="relative">
-              <Bell size={20} />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
-              {user.name ? user.name.charAt(0) : 'U'}
-            </div>
-          </div>
-        </div>
-        <div className="p-2 border-t flex items-center">
-          <button
-            onClick={() => navigate('/app/dashboard')}
-            className="p-2 rounded-md hover:bg-gray-100"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <h2 className="ml-2 font-medium">Upload Scan</h2>
-        </div>
-      </div>
+      </motion.div>
       
       {/* Main content */}
       <div className="flex-1 overflow-auto pt-16 md:pt-0">
         <div className="h-full flex flex-col">
-          {/* Desktop header */}
-          <div className="hidden md:flex items-center justify-between p-6 border-b bg-white">
-            <h2 className="text-2xl font-bold">Upload Medical Scan</h2>
+          {/* Desktop header - Updated to match Dashboard */}
+          <header className="hidden md:flex items-center justify-between p-4 border-b bg-white shadow-sm">
+            <h2 className="text-2xl font-bold text-gray-800">Upload Medical Scan</h2>
             <div className="flex items-center space-x-4">
-              <button className="relative">
-                <Bell size={20} />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
-                  {user.name ? user.name.charAt(0) : 'U'}
-                </div>
-                <span className="font-medium">{user.name || 'User'}</span>
+              <div className="hidden md:flex items-center bg-gray-100 rounded-lg px-3 py-2 flex-1 max-w-md">
+                <Search size={18} className="text-gray-500 mr-2" />
+                <input 
+                  type="text" 
+                  placeholder="Search patients or scans..." 
+                  className="bg-transparent border-0 outline-none flex-1 text-sm"
+                />
               </div>
+              <button className="relative p-1 rounded-full hover:bg-gray-100">
+                <Bell size={20} className="text-gray-600" />
+                <span className="absolute top-0 right-0 block w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+            </div>
+          </header>
+          
+          {/* Mobile header */}
+          <div className="md:hidden fixed top-0 left-0 right-0 bg-white shadow-sm z-10">
+            <div className="flex items-center justify-between p-4">
+              <h1 className="text-lg font-bold text-blue-700">MedAI Scan</h1>
+              <div className="flex items-center space-x-4">
+                <button className="relative">
+                  <Bell size={20} />
+                  <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
+                  {user.name ? user.name.charAt(0) : 'D'}
+                </div>
+              </div>
+            </div>
+            <div className="p-2 border-t flex items-center">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="p-2 rounded-md hover:bg-gray-100"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <h2 className="ml-2 font-medium">Upload Scan</h2>
             </div>
           </div>
           
