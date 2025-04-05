@@ -6,21 +6,7 @@
 
 > 🚀 Smart, secure, and scalable medical dashboard to generate AI-powered scan reports, integrated with cloud storage and QR sharing.
 
----
 
-## 📸 Screenshots
-
-| Dashboard UI (Frontend) | PDF Report Sample |
-|-------------------------|-------------------|
-| ![UI](./screenshots/ui.png) | ![PDF](./screenshots/report.png) |
-
----
-
-## 🔗 Live Demo
-
-> 🌐 Coming soon: [your-live-url.com](https://your-live-url.com)
-
----
 
 ## 📚 Overview
 
