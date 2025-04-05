@@ -70,6 +70,7 @@ const PDFComparison = () => {
   }, [files]);
 
   // Enhanced transformation function to better handle API response
+  // Enhanced transformation function to better handle API response
   const transformApiResponse = (apiData) => {
     // Store raw response for debugging
     setRawApiResponse(apiData);
@@ -85,66 +86,55 @@ const PDFComparison = () => {
     };
 
     // Extract data from the API response
-    const progressReport = apiData.progress_report;
+    if (apiData.progress_report) {
+      const progressReport = apiData.progress_report;
 
-    // Add progress summary to key findings
-    if (progressReport && progressReport.progress_summary) {
-      transformedData.summary.keyFindings.push(progressReport.progress_summary);
-    }
-
-    // Add similarity interpretation to key findings
-    if (progressReport && progressReport.similarity_interpretation) {
-      transformedData.summary.keyFindings.push(progressReport.similarity_interpretation);
-    }
-
-    // Add recovery metrics to key findings if they exist
-    if (progressReport && progressReport.recovery_metrics) {
-      const metrics = progressReport.recovery_metrics;
-
-      if (metrics.overall_recovery_percentage > 0) {
-        transformedData.summary.keyFindings.push(`Overall recovery: ${metrics.overall_recovery_percentage}%`);
+      // Add progress summary to key findings
+      if (progressReport.progress_summary) {
+        transformedData.summary.keyFindings.push(progressReport.progress_summary);
       }
 
-      if (metrics.bone_healing_percentage > 0) {
-        transformedData.summary.keyFindings.push(`Bone healing progress: ${metrics.bone_healing_percentage}%`);
+      // Add similarity interpretation to key findings
+      if (progressReport.similarity_interpretation) {
+        transformedData.summary.keyFindings.push(progressReport.similarity_interpretation);
       }
 
-      if (metrics.symptoms_improvement_percentage > 0) {
-        transformedData.summary.keyFindings.push(`Symptoms improvement: ${metrics.symptoms_improvement_percentage}%`);
+      // Add recovery metrics to key findings if they exist
+      if (progressReport.recovery_metrics) {
+        const metrics = progressReport.recovery_metrics;
+
+        if (metrics.overall_recovery_percentage > 0) {
+          transformedData.summary.keyFindings.push(`Overall recovery: ${metrics.overall_recovery_percentage}%`);
+        }
+
+        if (metrics.bone_healing_percentage > 0) {
+          transformedData.summary.keyFindings.push(`Bone healing progress: ${metrics.bone_healing_percentage}%`);
+        }
+
+        if (metrics.symptoms_improvement_percentage > 0) {
+          transformedData.summary.keyFindings.push(`Symptoms improvement: ${metrics.symptoms_improvement_percentage}%`);
+        }
+
+        // Add any key indicators
+        if (metrics.key_indicators && metrics.key_indicators.length > 0) {
+          metrics.key_indicators.forEach(indicator => {
+            transformedData.summary.keyFindings.push(indicator);
+          });
+        }
       }
 
-      // Add any key indicators
-      if (metrics.key_indicators && metrics.key_indicators.length > 0) {
-        metrics.key_indicators.forEach(indicator => {
-          transformedData.summary.keyFindings.push(indicator);
-        });
+      // Add treatment recommendations
+      if (progressReport.treatment_recommendations) {
+        transformedData.summary.recommendations = progressReport.treatment_recommendations;
       }
-    }
 
-    // If no key findings were found, provide a default message
-    if (transformedData.summary.keyFindings.length === 0) {
-      transformedData.summary.keyFindings.push("No significant changes in conditions or findings were detected.");
-      transformedData.summary.keyFindings.push("The documents are highly similar, but they may still contain important differences in medical details.");
-    }
-
-    // Add treatment recommendations
-    if (progressReport && progressReport.treatment_recommendations) {
-      transformedData.summary.recommendations = progressReport.treatment_recommendations;
-    }
-
-    // Process document changes
-    if (files.length >= 2) {
-      // Check if we have actual differences from API
-      if (progressReport && progressReport.changes) {
+      // Process document changes
+      if (progressReport.changes) {
         const changes = progressReport.changes;
 
         // Check if there are actual changes
-        const hasChanges =
-          (changes.added && Object.keys(changes.added).length > 0) ||
-          (changes.removed && Object.keys(changes.removed).length > 0);
-
-        if (hasChanges) {
-          transformedData.differences = [];
+        if ((changes.added && Object.keys(changes.added).length > 0) ||
+          (changes.removed && Object.keys(changes.removed).length > 0)) {
 
           // Process added items
           if (changes.added && Object.keys(changes.added).length > 0) {
@@ -197,43 +187,16 @@ const PDFComparison = () => {
           }
         }
       }
-
-      // If no differences were found or returned by API, generate some demo differences
-      if (transformedData.differences.length === 0) {
-        transformedData.differences = [
-          {
-            category: 'Bone Density',
-            doc1: 'T-score: -2.3, indicating osteopenia',
-            doc2: 'T-score: -1.8, showing improvement in bone density',
-            significance: 'high'
-          },
-          {
-            category: 'Joint Space',
-            doc1: 'Joint space narrowing observed in right knee',
-            doc2: 'Joint space maintained with slight improvement',
-            significance: 'medium'
-          },
-          {
-            category: 'Inflammation Markers',
-            doc1: 'ESR elevated at 28 mm/hr',
-            doc2: 'ESR reduced to 15 mm/hr, within normal range',
-            significance: 'high'
-          },
-          {
-            category: 'Tissue Healing',
-            doc1: 'Edema present in soft tissues surrounding injury',
-            doc2: 'Significant reduction in edema and improved tissue healing',
-            significance: 'medium'
-          },
-          {
-            category: 'Range of Motion',
-            doc1: 'Limited to 45° flexion',
-            doc2: 'Improved to 80° flexion',
-            significance: 'high'
-          }
-        ];
-      }
     }
+
+    // If no key findings were found, provide a default message
+    if (transformedData.summary.keyFindings.length === 0) {
+      transformedData.summary.keyFindings.push("No significant changes in conditions or findings were detected.");
+      transformedData.summary.keyFindings.push("The documents are highly similar, but they may still contain important differences in medical details.");
+    }
+
+    // If no differences were found in the API response, leave as empty array
+    // Rather than filling with demo data
 
     return transformedData;
   };
@@ -641,10 +604,10 @@ const PDFComparison = () => {
                           <div className="w-full bg-gray-200 rounded-full h-4">
                             <div
                               className={`h-4 rounded-full transition-all duration-1000 ${comparisonResult.summary.similarityScore > 80
-                                  ? 'bg-green-500'
-                                  : comparisonResult.summary.similarityScore > 50
-                                    ? 'bg-yellow-500'
-                                    : 'bg-red-500'
+                                ? 'bg-green-500'
+                                : comparisonResult.summary.similarityScore > 50
+                                  ? 'bg-yellow-500'
+                                  : 'bg-red-500'
                                 }`}
                               style={{ width: `${comparisonResult.summary.similarityScore}%` }}
                             ></div>
