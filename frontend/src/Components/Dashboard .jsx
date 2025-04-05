@@ -26,8 +26,8 @@ const Dashboard = () => {
 
   const navigationItems = [
     { icon: <Layout size={20} />, label: 'Dashboard', action: () => {} },
-    { icon: <Upload size={20} />, label: 'Upload Scan', action: () => navigate('/app/upload') },
-    { icon: <FileDiff size={20} />, label: 'Compare Scans', action: () => navigate('/app/compare') },
+    { icon: <Upload size={20} />, label: 'Upload Scan', action: () => navigate('/upload') },
+    { icon: <FileDiff size={20} />, label: 'Compare Scans', action: () => navigate('/compare') },
     { icon: <Users size={20} />, label: 'Patient Records', action: () => {} },
     { icon: <History size={20} />, label: 'History', action: () => {} },
   ];

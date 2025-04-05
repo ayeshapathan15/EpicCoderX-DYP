@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -14,18 +14,27 @@ import {
   X,
   Download,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  FileText,
+  Clock
 } from 'lucide-react';
 
 const UploadScan = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || {});
   const [files, setFiles] = useState([]);
+  const [reportFile, setReportFile] = useState(null);
+  const [reportText, setReportText] = useState('');
   const [patientId, setPatientId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [patientReports, setPatientReports] = useState([]);
+  const [isLoadingReports, setIsLoadingReports] = useState(false);
   const fileInputRef = useRef(null);
+  const reportFileInputRef = useRef(null);
   
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
@@ -34,9 +43,9 @@ const UploadScan = () => {
   };
 
   const navigationItems = [
-    { icon: <Layout size={20} />, label: 'Dashboard', action: () => navigate('/app/dashboard') },
+    { icon: <Layout size={20} />, label: 'Dashboard', action: () => navigate('/dashboard') },
     { icon: <UploadIcon size={20} />, label: 'Upload Scan', action: () => {} },
-    { icon: <FileDiff size={20} />, label: 'Compare Scans', action: () => navigate('/app/compare') },
+    { icon: <FileDiff size={20} />, label: 'Compare Scans', action: () => navigate('/compare') },
     { icon: <Users size={20} />, label: 'Patient Records', action: () => {} },
     { icon: <History size={20} />, label: 'History', action: () => {} },
   ];
@@ -52,9 +61,24 @@ const UploadScan = () => {
     }
   };
 
+  const handleReportFileChange = (e) => {
+    if (e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setReportFile({
+        file,
+        id: Math.random().toString(36).substring(2, 11),
+        name: file.name
+      });
+    }
+  };
+
   const removeFile = (id) => {
     const updatedFiles = files.filter(file => file.id !== id);
     setFiles(updatedFiles);
+  };
+
+  const removeReportFile = () => {
+    setReportFile(null);
   };
 
   const handleDrop = (e) => {
@@ -73,58 +97,101 @@ const UploadScan = () => {
     e.preventDefault();
   };
 
+  const fetchPatientReports = async () => {
+    if (!patientId) return;
+    
+    setIsLoadingReports(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`http:://localhost:5000/api/patient/${patientId}/reports`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch patient reports');
+      }
+      
+      const data = await response.json();
+      setPatientReports(data.reports || []);
+      setShowHistoryModal(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoadingReports(false);
+    }
+  };
+
+  const loadReport = async (reportId) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`http:://localhost:5000/api/report/${reportId}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to load report');
+      }
+      
+      const data = await response.json();
+      setResult(data.analysis_result);
+      setShowHistoryModal(false);
+      setShowModal(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      setError('Please upload at least one scan file');
+      return;
+    }
     
     setIsLoading(true);
+    setError(null);
     
-    // Simulate API call with timeout
-    setTimeout(() => {
-      // Mock response from the server
-      const mockResponse = {
-        "anomaly_detection": {
-          "analysis": "*ANOMALY: YES\n\nThe provided medical scan reveals a significant anomaly in the wrist region. The scan, likely an MRI or CT scan, shows a clear disruption of the normal anatomy of the wrist bones and surrounding soft tissues.\n\nFINDINGS:\n\n   *Location:* The anomaly is primarily located in the distal radius and ulna, with possible involvement of the carpal bones.\n*   *Nature:* The anomaly appears to be a fracture or dislocation, characterized by a discontinuity in the cortical bone and potential displacement of the affected bones.\n*   *Associated Features:* There may be associated soft tissue edema or hematoma, as indicated by increased signal intensity on the T2-weighted images.\n\n*Conclusion:*\n\nThe presence of a fracture or dislocation in the wrist region is a significant anomaly that requires prompt medical attention. Further evaluation and treatment, such as immobilization or surgical intervention, may be necessary to ensure proper healing and prevent long-term complications.",
-          "anomaly_detected": true,
-          "error": null,
-          "findings": [
-            {
-              "confidence": null,
-              "confidence_text": "Based on visual analysis",
-              "description": "",
-              "location": null,
-              "type": "Finding 1"
-            },
-            {
-              "confidence": null,
-              "confidence_text": "Based on visual analysis",
-              "description": "*   *Location:* The anomaly is primarily located in the distal radius and ulna, with possible involvement of the carpal bones.",
-              "location": null,
-              "type": "Finding 2"
-            },
-            {
-              "confidence": null,
-              "confidence_text": "Based on visual analysis",
-              "description": "*   *Nature:* The anomaly appears to be a fracture or dislocation, characterized by a discontinuity in the cortical bone and potential displacement of the affected bones.",
-              "location": null,
-              "type": "Finding 3"
-            },
-            {
-              "confidence": null,
-              "confidence_text": "Based on visual analysis",
-              "description": "*   *Associated Features:* There may be associated soft tissue edema or hematoma, as indicated by increased signal intensity on the T2-weighted images.",
-              "location": null,
-              "type": "Finding 4"
-            }
-          ],
-          "recommendation": "Immediate orthopedic consultation is recommended. Consider immobilization with a splint or cast. Further imaging such as specialized X-rays or additional MRI sequences may be beneficial for surgical planning if indicated."
-        }
-      };
-
-      setResult(mockResponse);
-      setIsLoading(false);
+    try {
+      // Create form data to send to the API
+      const formData = new FormData();
+      
+      // Add the scan file
+      formData.append('scan', files[0].file);
+      
+      // Add patient ID if available
+      if (patientId) {
+        formData.append('patient_id', patientId);
+      }
+      
+      // Add either the report file or report text
+      if (reportFile) {
+        formData.append('report', reportFile.file);
+      } else if (reportText) {
+        formData.append('report_text', reportText);
+      }
+      
+      // Make the API call
+      const response = await fetch("http://localhost:5000/api/analyze", {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to analyze scan');
+      }
+      
+      const data = await response.json();
+      setResult(data);
       setShowModal(true);
-    }, 2000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const ResultModal = () => {
@@ -229,6 +296,83 @@ const UploadScan = () => {
     );
   };
 
+  const HistoryModal = () => {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden"
+        >
+          <div className="p-4 border-b flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Patient Report History</h2>
+            <button 
+              onClick={() => setShowHistoryModal(false)}
+              className="p-1 rounded-full hover:bg-gray-100"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-130px)]">
+            {isLoadingReports ? (
+              <div className="flex justify-center items-center py-8">
+                <svg className="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+            ) : patientReports.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <File size={48} className="mx-auto mb-4 text-gray-400" />
+                <p>No reports found for this patient</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {patientReports.map((report) => (
+                  <div 
+                    key={report._id} 
+                    className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition"
+                    onClick={() => loadReport(report._id)}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center">
+                        <div className={`w-3 h-3 rounded-full mr-2 ${report.anomaly_detected ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                        <h3 className="font-medium">{report.scan_filename}</h3>
+                      </div>
+                      <span className="text-xs text-gray-500 flex items-center">
+                        <Clock size={12} className="mr-1" />
+                        {new Date(report.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">
+                        {report.anomaly_detected ? 'Anomaly Detected' : 'No Anomaly Detected'}
+                      </span>
+                      <button className="text-xs text-blue-600 hover:text-blue-800">
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <div className="p-4 border-t flex justify-end">
+            <button 
+              onClick={() => setShowHistoryModal(false)}
+              className="px-4 py-2 border rounded-md hover:bg-gray-50"
+            >
+              Close
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -293,7 +437,7 @@ const UploadScan = () => {
       </div>
       
       {/* Main content */}
-      <div className="flex-1 overflow-auto pt-4 md:pt-0">
+      <div className="flex-1 overflow-auto pt-16 md:pt-0">
         <div className="h-full flex flex-col">
           {/* Desktop header */}
           <div className="hidden md:flex items-center justify-between p-6 border-b bg-white">
@@ -315,94 +459,222 @@ const UploadScan = () => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex-1 p-6 flex flex-col">
             <div className="mb-6">
-              <label htmlFor="patientId" className="block text-sm font-medium text-gray-700 mb-1">
-                Patient ID
-              </label>
+              <div className="flex justify-between items-end">
+                <label htmlFor="patientId" className="block text-sm font-medium text-gray-700 mb-1">
+                  Patient ID
+                </label>
+                {patientId && (
+                  <button
+                    type="button"
+                    onClick={fetchPatientReports}
+                    className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                  >
+                    <History size={14} className="mr-1" />
+                    View History
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 id="patientId"
                 value={patientId}
                 onChange={(e) => setPatientId(e.target.value)}
-                className="px-4 py-2 border rounded-md w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="px-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Enter patient ID"
               />
             </div>
             
-            <div className="flex-1 mb-6">
+            <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Upload Scan Images
+                Upload Medical Scan
               </label>
-              <div
+              <div 
+                className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer"
+                onClick={() => fileInputRef.current.click()}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
-                className="border-2 border-dashed rounded-lg p-6 h-64 flex flex-col items-center justify-center bg-gray-50 cursor-pointer"
-                onClick={() => fileInputRef.current.click()}
               >
-                <UploadIcon size={40} className="text-gray-400 mb-4" />
-                <p className="text-sm text-gray-500 text-center mb-2">
-                  Drag and drop files here, or click to select files
-                </p>
-                <p className="text-xs text-gray-400 text-center">
-                  Supported formats: JPEG, PNG, DICOM
-                </p>
                 <input
-                  type="file"
                   ref={fileInputRef}
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.dcm,.nii,.nii.gz"
                   onChange={handleFileChange}
-                  multiple
-                  accept=".jpg,.jpeg,.png,.dcm"
                   className="hidden"
                 />
+                {files.length === 0 ? (
+                  <>
+                    <UploadIcon size={48} className="text-gray-400 mb-3" />
+                    <p className="text-sm text-gray-500">
+                      Drag & drop your scan files here, or click to browse
+                    </p>
+                    <p className="text-xs text-gray-400 mt-2">
+                      Supported formats: PNG, JPG, JPEG, DICOM, NIfTI
+                    </p>
+                  </>
+                ) : (
+                  <div className="w-full">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-medium">Selected Files</h3>
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current.click();
+                        }}
+                        className="text-sm text-blue-600"
+                      >
+                        Add More
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {files.map(file => (
+                        <div key={file.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                          <div className="flex items-center space-x-3">
+                            <img 
+                              src={file.preview} 
+                              alt="Preview" 
+                              className="w-12 h-12 object-cover rounded-md bg-gray-200"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "/api/placeholder/48/48";
+                              }}
+                            />
+                            <div>
+                              <p className="text-sm font-medium">{file.file.name}</p>
+                              <p className="text-xs text-gray-500">
+                                {(file.file.size / (1024 * 1024)).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeFile(file.id);
+                            }}
+                            className="p-1 rounded-full hover:bg-gray-200"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             
-            {files.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">
-                  Selected Files ({files.length})
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {files.map((file) => (
-                    <div key={file.id} className="relative">
-                      <div className="aspect-square rounded-lg overflow-hidden border bg-gray-100">
-                        <img
-                          src={file.preview}
-                          alt={file.file.name}
-                          className="w-full h-full object-cover"
-                        />
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Medical Report (Optional)
+              </label>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <div className="border rounded-md p-4">
+                    <div className="flex items-center mb-2">
+                      <input
+                        type="radio"
+                        id="uploadReport"
+                        name="reportType"
+                        checked={reportFile !== null}
+                        onChange={() => {
+                          if (!reportFile) {
+                            reportFileInputRef.current.click();
+                          }
+                        }}
+                        className="mr-2"
+                      />
+                      <label htmlFor="uploadReport" className="text-sm font-medium">
+                        Upload Report File
+                      </label>
+                    </div>
+                    <input
+                      ref={reportFileInputRef}
+                      type="file"
+                      accept=".pdf,.txt,.docx"
+                      onChange={handleReportFileChange}
+                      className="hidden"
+                    />
+                    {reportFile ? (
+                      <div className="flex items-center justify-between bg-gray-50 p-2 rounded-md">
+                        <div className="flex items-center space-x-2">
+                          <FileText size={16} className="text-gray-400" />
+                          <span className="text-sm truncate">{reportFile.name}</span>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={removeReportFile}
+                          className="p-1 rounded-full hover:bg-gray-200"
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
+                    ) : (
                       <button
                         type="button"
-                        onClick={() => removeFile(file.id)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                        onClick={() => reportFileInputRef.current.click()}
+                        className="flex items-center justify-center w-full p-2 border border-gray-300 border-dashed rounded-md hover:bg-gray-50"
                       >
-                        <X size={14} />
+                        <span className="text-sm text-gray-500">
+                          Click to upload
+                        </span>
                       </button>
-                      <p className="text-xs truncate mt-1">{file.file.name}</p>
-                    </div>
-                  ))}
+                    )}
+                  </div>
                 </div>
+                <div>
+                  <div className="border rounded-md p-4">
+                    <div className="flex items-center mb-2">
+                      <input
+                        type="radio"
+                        id="enterReport"
+                        name="reportType"
+                        checked={reportFile === null}
+                        onChange={() => {
+                          if (reportFile) {
+                            setReportFile(null);
+                          }
+                        }}
+                        className="mr-2"
+                      />
+                      <label htmlFor="enterReport" className="text-sm font-medium">
+                        Enter Report Text
+                      </label>
+                    </div>
+                    <textarea
+                      value={reportText}
+                      onChange={(e) => setReportText(e.target.value)}
+                      placeholder="Enter medical report text..."
+                      className="w-full p-2 border border-gray-300 rounded-md resize-none h-32 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      disabled={reportFile !== null}
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {error && (
+              <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
             
             <div className="mt-auto">
               <button
                 type="submit"
-                disabled={files.length === 0 || isLoading}
-                className={`w-full py-3 rounded-md text-white font-medium flex items-center justify-center ${
-                  files.length === 0 || isLoading
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
+                disabled={isLoading || files.length === 0}
+                className={`w-full py-3 rounded-md font-medium text-white ${
+                  isLoading || files.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
                 }`}
               >
                 {isLoading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <div className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Processing...
-                  </>
+                    Analyzing Scan...
+                  </div>
                 ) : (
                   'Analyze Scan'
                 )}
@@ -415,6 +687,11 @@ const UploadScan = () => {
       {/* Result Modal */}
       <AnimatePresence>
         {showModal && <ResultModal />}
+      </AnimatePresence>
+      
+      {/* History Modal */}
+      <AnimatePresence>
+        {showHistoryModal && <HistoryModal />}
       </AnimatePresence>
     </div>
   );
