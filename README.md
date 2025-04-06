@@ -118,4 +118,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📞 Support
 
-For questions or support, please open an issue on the GitHub repository or contact the development team at support@medvisor.example.com.
+For questions or support, please open an issue on the GitHub repository or contact the development team at pallav2910@gmail.com
