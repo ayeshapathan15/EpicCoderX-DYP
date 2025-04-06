@@ -30,6 +30,12 @@ const Dashboard = () => {
     { icon: <FileDiff size={20} />, label: 'Compare Scans', action: () => navigate('/compare') },
     { icon: <Users size={20} />, label: 'Patient Records', action: () => navigate('/patient-history') },
     { icon: <History size={20} />, label: 'History', action: () => navigate('/patient-history') },
+    {
+      icon: <Users size={20} />,
+      label: '3D Visualization',
+      action: () => window.open('file:///home/pallav/Documents/GitHub/EpicCoderX-DYP/ImageTo3D.html', '_blank')
+    }
+
   ];
 
   const recentPatients = [

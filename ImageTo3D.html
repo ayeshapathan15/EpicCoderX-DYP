@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Single Image to 3D Converter</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      background-color: #222;
+      color: white;
+    }
+    
+    #container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+    
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 300px;
+    }
+    
+    button, select {
+      padding: 8px;
+      cursor: pointer;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    input[type="range"] {
+      width: 100%;
+    }
+    
+    .range-container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+    
+    #preview {
+      max-width: 100px;
+      border: 1px solid white;
+      margin-top: 10px;
+    }
+    
+    .loader {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  
+  <div id="controls">
+    <h3>Image to 3D Converter</h3>
+    
+    <div>
+      <input type="file" id="imageInput" accept="image/*">
+      <img id="preview" style="display: none;">
+    </div>
+    
+    <div class="range-container">
+      <label for="heightScale">Height Scale: <span id="heightScaleValue">5.0</span></label>
+      <input type="range" id="heightScale" min="0" max="20" step="0.1" value="5.0">
+    </div>
+    
+    <div class="range-container">
+      <label for="resolution">Resolution: <span id="resolutionValue">1.0</span></label>
+      <input type="range" id="resolution" min="0.1" max="2" step="0.1" value="1.0">
+    </div>
+    
+    <div>
+      <label for="mode">3D Mode:</label>
+      <select id="mode">
+        <option value="heightmap">Height Map</option>
+        <option value="pointcloud">Point Cloud</option>
+        <option value="mesh">Wireframe Mesh</option>
+      </select>
+    </div>
+    
+    <div class="range-container">
+      <label for="smoothing">Smoothing: <span id="smoothingValue">0</span></label>
+      <input type="range" id="smoothing" min="0" max="5" step="1" value="0">
+    </div>
+    
+    <button id="generate3D">Generate 3D</button>
+    <button id="screenshot">Take Screenshot</button>
+    
+    <div class="range-container">
+      <label>
+        <input type="checkbox" id="autoRotate"> Auto-Rotate
+      </label>
+    </div>
+    
+    <div class="range-container">
+      <label for="rotateSpeed">Rotation Speed: <span id="rotateSpeedValue">2.0</span></label>
+      <input type="range" id="rotateSpeed" min="0.5" max="5" step="0.5" value="2.0">
+    </div>
+  </div>
+  
+  <div id="loader" class="loader">
+    <p>Processing image... This may take a moment.</p>
+  </div>
+  
+  <!-- Three.js library - Make sure to use the correct version and import controls properly -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.min.js"></script>
+  
+  <script>
+    // Get DOM elements
+    const container = document.getElementById('container');
+    const imageInput = document.getElementById('imageInput');
+    const previewElement = document.getElementById('preview');
+    const heightScaleSlider = document.getElementById('heightScale');
+    const heightScaleValue = document.getElementById('heightScaleValue');
+    const resolutionSlider = document.getElementById('resolution');
+    const resolutionValue = document.getElementById('resolutionValue');
+    const modeSelect = document.getElementById('mode');
+    const smoothingSlider = document.getElementById('smoothing');
+    const smoothingValue = document.getElementById('smoothingValue');
+    const generate3DButton = document.getElementById('generate3D');
+    const screenshotButton = document.getElementById('screenshot');
+    const loader = document.getElementById('loader');
+    const autoRotateCheckbox = document.getElementById('autoRotate');
+    const rotateSpeedSlider = document.getElementById('rotateSpeed');
+    const rotateSpeedValue = document.getElementById('rotateSpeedValue');
+    
+    // Three.js variables
+    let scene, camera, renderer, controls;
+    let object3D = null;
+    let imageData = null;
+    let imageTexture = null;
+    
+    // Initialize Three.js
+    function init() {
+      // Create scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x222222);
+      
+      // Create camera
+      camera = new THREE.PerspectiveCamera(
+        45, window.innerWidth / window.innerHeight, 0.1, 1000
+      );
+      camera.position.set(0, 50, 100);
+      
+      // Create renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      container.appendChild(renderer.domElement);
+      
+      // Create orbit controls - fixed initialization
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.25;
+      
+      // Add lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+      
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(1, 1, 1);
+      scene.add(directionalLight);
+      
+      // Add grid helper
+      const gridHelper = new THREE.GridHelper(100, 10);
+      scene.add(gridHelper);
+      
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+      
+      // Start animation loop
+      animate();
+    }
+    
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      // Check if auto-rotation is enabled
+      if (controls && autoRotateCheckbox && autoRotateCheckbox.checked) {
+        // Get rotation speed from slider
+        const speed = parseFloat(rotateSpeedSlider.value);
+        
+        // Rotate the object if it exists
+        if (object3D) {
+          object3D.rotation.z += speed * 0.01;
+        }
+      }
+      
+      if (controls) controls.update();
+      renderer.render(scene, camera);
+    }
+    
+    // Handle image input
+    imageInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        // Display preview
+        previewElement.src = event.target.result;
+        previewElement.style.display = 'block';
+        
+        // Create image element to get pixel data
+        const img = new Image();
+        img.onload = function() {
+          // Create a canvas to get image data
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          
+          // Get image data
+          imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          
+          // Create texture
+          imageTexture = new THREE.CanvasTexture(canvas);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    // Update slider values
+    heightScaleSlider.addEventListener('input', function() {
+      heightScaleValue.textContent = this.value;
+    });
+    
+    resolutionSlider.addEventListener('input', function() {
+      resolutionValue.textContent = this.value;
+    });
+    
+    smoothingSlider.addEventListener('input', function() {
+      smoothingValue.textContent = this.value;
+    });
+    
+    rotateSpeedSlider.addEventListener('input', function() {
+      rotateSpeedValue.textContent = this.value;
+    });
+    
+    // Generate 3D button
+    generate3DButton.addEventListener('click', function() {
+      if (!imageData) {
+        alert('Please select an image first.');
+        return;
+      }
+      
+      loader.style.display = 'block';
+      
+      // Remove previous 3D object
+      if (object3D) {
+        scene.remove(object3D);
+        object3D = null;
+      }
+      
+      // Get parameters
+      const heightScale = parseFloat(heightScaleSlider.value);
+      const resolution = parseFloat(resolutionSlider.value);
+      const mode = modeSelect.value;
+      const smoothingLevel = parseInt(smoothingSlider.value);
+      
+      // Generate 3D after a small delay to allow UI to update
+      setTimeout(() => {
+        generateFrom2DImage(imageData, mode, heightScale, resolution, smoothingLevel);
+        loader.style.display = 'none';
+      }, 100);
+    });
+    
+    // Take screenshot
+    screenshotButton.addEventListener('click', function() {
+      renderer.render(scene, camera);
+      const screenshot = renderer.domElement.toDataURL('image/png');
+      
+      const link = document.createElement('a');
+      link.href = screenshot;
+      link.download = '3d_image_screenshot.png';
+      link.click();
+    });
+    
+    // Function to generate 3D visualization from 2D image
+    function generateFrom2DImage(imageData, mode, heightScale, resolution, smoothingLevel) {
+      const width = imageData.width;
+      const height = imageData.height;
+      
+      // Calculate dimensions based on resolution
+      const segmentsX = Math.floor(width * resolution);
+      const segmentsY = Math.floor(height * resolution);
+      
+      // Calculate scales to center the object
+      const scaleX = width / Math.max(width, height);
+      const scaleY = height / Math.max(width, height);
+      
+      // Create different 3D visualizations based on mode
+      if (mode === 'heightmap') {
+        // Create a plane geometry
+        const geometry = new THREE.PlaneGeometry(
+          100 * scaleX, 
+          100 * scaleY, 
+          segmentsX, 
+          segmentsY
+        );
+        
+        // Sample pixel values and adjust vertices
+        const positionAttribute = geometry.attributes.position;
+        
+        // Calculate height values with smoothing if needed
+        const heightValues = calculateHeightValues(imageData, segmentsX + 1, segmentsY + 1, smoothingLevel);
+        
+        // Apply height values to vertices
+        for (let i = 0; i < positionAttribute.count; i++) {
+          const x = i % (segmentsX + 1);
+          const y = Math.floor(i / (segmentsX + 1));
+          
+          const z = heightValues[y * (segmentsX + 1) + x] * heightScale;
+          positionAttribute.setZ(i, z);
+        }
+        
+        // Update the geometry
+        geometry.computeVertexNormals();
+        
+        // Create material
+        const material = new THREE.MeshPhongMaterial({
+          map: imageTexture,
+          wireframe: false,
+          side: THREE.DoubleSide
+        });
+        
+        // Create mesh
+        object3D = new THREE.Mesh(geometry, material);
+        
+      } else if (mode === 'pointcloud') {
+        // Create point cloud geometry
+        const geometry = new THREE.BufferGeometry();
+        const positions = [];
+        const colors = [];
+        
+        // Sample at reduced resolution
+        const stepX = Math.ceil(width / segmentsX);
+        const stepY = Math.ceil(height / segmentsY);
+        
+        for (let y = 0; y < height; y += stepY) {
+          for (let x = 0; x < width; x += stepX) {
+            const pixelIndex = (y * width + x) * 4;
+            
+            // Get pixel values
+            const r = imageData.data[pixelIndex] / 255;
+            const g = imageData.data[pixelIndex + 1] / 255;
+            const b = imageData.data[pixelIndex + 2] / 255;
+            
+            // Calculate grayscale (brightness)
+            const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+            
+            // Calculate position
+            const posX = (x / width - 0.5) * 100 * scaleX;
+            const posY = (0.5 - y / height) * 100 * scaleY;
+            const posZ = brightness * heightScale;
+            
+            // Add position and color
+            positions.push(posX, posY, posZ);
+            colors.push(r, g, b);
+          }
+        }
+        
+        // Set attributes
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        
+        // Create material
+        const material = new THREE.PointsMaterial({
+          size: 0.5,
+          vertexColors: true
+        });
+        
+        // Create point cloud
+        object3D = new THREE.Points(geometry, material);
+        
+      } else if (mode === 'mesh') {
+        // Create a plane geometry
+        const geometry = new THREE.PlaneGeometry(
+          100 * scaleX, 
+          100 * scaleY, 
+          segmentsX, 
+          segmentsY
+        );
+        
+        // Sample pixel values and adjust vertices
+        const positionAttribute = geometry.attributes.position;
+        
+        // Calculate height values with smoothing if needed
+        const heightValues = calculateHeightValues(imageData, segmentsX + 1, segmentsY + 1, smoothingLevel);
+        
+        // Apply height values to vertices
+        for (let i = 0; i < positionAttribute.count; i++) {
+          const x = i % (segmentsX + 1);
+          const y = Math.floor(i / (segmentsX + 1));
+          
+          const z = heightValues[y * (segmentsX + 1) + x] * heightScale;
+          positionAttribute.setZ(i, z);
+        }
+        
+        // Update the geometry
+        geometry.computeVertexNormals();
+        
+        // Create material for wireframe
+        const material = new THREE.MeshBasicMaterial({
+          wireframe: true,
+          color: 0x00ffff
+        });
+        
+        // Create mesh
+        object3D = new THREE.Mesh(geometry, material);
+      }
+      
+      // Add to scene
+      if (object3D) {
+        // Rotate to face camera (X-rotation of -90 degrees)
+        object3D.rotation.x = -Math.PI / 2;
+        scene.add(object3D);
+        
+        // Center camera
+        controls.target.set(0, 0, 0);
+        controls.update();
+      }
+    }
+    
+    // Function to calculate height values with optional smoothing
+    function calculateHeightValues(imageData, width, height, smoothingLevel) {
+      const imgWidth = imageData.width;
+      const imgHeight = imageData.height;
+      const heightValues = new Array(width * height);
+      
+      // Sample image pixels
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const imgX = Math.floor((x / width) * imgWidth);
+          const imgY = Math.floor((y / height) * imgHeight);
+          
+          const pixelIndex = (imgY * imgWidth + imgX) * 4;
+          
+          // Get pixel values
+          const r = imageData.data[pixelIndex] / 255;
+          const g = imageData.data[pixelIndex + 1] / 255;
+          const b = imageData.data[pixelIndex + 2] / 255;
+          
+          // Calculate grayscale (brightness)
+          const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+          
+          heightValues[y * width + x] = brightness;
+        }
+      }
+      
+      // Apply smoothing if needed
+      if (smoothingLevel > 0) {
+        for (let s = 0; s < smoothingLevel; s++) {
+          const tempValues = [...heightValues];
+          
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const index = y * width + x;
+              
+              // Skip edges
+              if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+                continue;
+              }
+              
+              // Average with neighbors
+              const avg = (
+                tempValues[(y - 1) * width + x] +  // top
+                tempValues[(y + 1) * width + x] +  // bottom
+                tempValues[y * width + (x - 1)] +  // left
+                tempValues[y * width + (x + 1)] +  // right
+                tempValues[index]                  // center
+              ) / 5;
+              
+              heightValues[index] = avg;
+            }
+          }
+        }
+      }
+      
+      return heightValues;
+    }
+    
+    // Initialize the scene
+    init();
+  </script>
+</body>
+</html>

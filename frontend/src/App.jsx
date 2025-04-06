@@ -8,6 +8,7 @@ import Dashboard from './Components/Dashboard ';
 import UploadScan from './Components/UploadScan';
 import PDFComparison from './Components/PDFComparison';
 import PatientHistory from './Components/PatientHistory';
+import ImageTo3DConverter from './Components/ImageTo3DConverter';
 // import CompareScan from './Components/CompareScan';
 // import ProtectedRoute from './Components/ProtectedRoute';
 
@@ -23,6 +24,7 @@ const App = () => {
         <Route path="/upload" element={<UploadScan />} />
         <Route path="/compare" element={<PDFComparison />} />
         <Route path="/patient-history" element={<PatientHistory />} />
+        <Route path="/3d" element={<ImageTo3DConverter />} />
       </Routes>
       {/* </AnimatePresence> */}
       {/* <Toaster /> */}
