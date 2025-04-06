@@ -97,7 +97,7 @@ const LandingPage = () => {
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <Cpu className="text-blue-600" size={24} />
-            <span className="text-xl font-bold text-gray-800">MedScanAI</span>
+            <span className="text-xl font-bold text-gray-800">MedVisor AI</span>
           </div>
           <div className="hidden md:flex space-x-8">
             <a href="#features" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Features</a>
@@ -105,7 +105,7 @@ const LandingPage = () => {
             <a href="#technology" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Technology</a>
            
           </div>
-          <a href="/login.html">
+          <a href="/dashboard">
           <button className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium py-2 px-6 rounded-full shadow-md hover:shadow-lg transition-all">
             Login
           </button>
@@ -314,7 +314,7 @@ const LandingPage = () => {
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-800 mb-1">Multi-Model Architecture</h3>
-                    <p className="text-gray-600">Combining VAE, CNN, and transformer models for comprehensive analysis.</p>
+                    <p className="text-gray-600">Combining VAE, Llama Vision, and transformer models for comprehensive analysis.</p>
                   </div>
                 </div>
                 
@@ -344,118 +344,10 @@ const LandingPage = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-6">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-16"
-          >
-            <span className="inline-block bg-indigo-100 text-indigo-600 px-4 py-1 rounded-full text-sm font-medium mb-4">
-              Trusted By Professionals
-            </span>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">What Doctors Say</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Hear from medical professionals using our platform daily
-            </p>
-          </motion.div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="bg-gray-50 rounded-xl p-8 shadow-sm border border-gray-200"
-            >
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-4">DR</div>
-                <div>
-                  <h4 className="font-bold text-gray-800">Dr. Sarah Johnson</h4>
-                  <p className="text-sm text-gray-500">Radiologist, Mayo Clinic</p>
-                </div>
-              </div>
-              <p className="text-gray-600 italic">
-                "The anomaly detection has improved our diagnostic accuracy by 30% and significantly reduced our workload. It's like having a second opinion available 24/7."
-              </p>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="bg-gray-50 rounded-xl p-8 shadow-sm border border-gray-200"
-            >
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold mr-4">PM</div>
-                <div>
-                  <h4 className="font-bold text-gray-800">Dr. Michael Chen</h4>
-                  <p className="text-sm text-gray-500">Primary Care Physician</p>
-                </div>
-              </div>
-              <p className="text-gray-600 italic">
-                "As a general practitioner in a rural area, this tool has been invaluable for getting expert-level analysis without needing to refer patients to specialists."
-              </p>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-gray-50 rounded-xl p-8 shadow-sm border border-gray-200"
-            >
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold mr-4">AD</div>
-                <div>
-                  <h4 className="font-bold text-gray-800">Dr. Amanda Davis</h4>
-                  <p className="text-sm text-gray-500">Hospital Administrator</p>
-                </div>
-              </div>
-              <p className="text-gray-600 italic">
-                "The seamless integration with our existing systems made adoption effortless, and we've seen a 40% reduction in diagnostic turnaround times."
-              </p>
-            </motion.div>
-          </div>
-        </div>
-      </section>
+
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
-        <div className="container mx-auto px-6 text-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="max-w-3xl mx-auto"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Enhance Your Diagnostic Capabilities?</h2>
-            <p className="text-xl mb-8">
-              Join the growing network of healthcare professionals transforming patient care with AI.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-white text-blue-700 font-bold py-3 px-8 rounded-full shadow-lg"
-              >
-                Schedule Demo
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-transparent border-2 border-white text-white font-bold py-3 px-8 rounded-full shadow-lg"
-              >
-                Contact Sales
-              </motion.button>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white pt-16 pb-8">
@@ -464,7 +356,7 @@ const LandingPage = () => {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <Cpu className="text-blue-400" size={24} />
-                <span className="text-xl font-bold">MedScanAI</span>
+                <span className="text-xl font-bold">MedVisor AI</span>
               </div>
               <p className="text-gray-400 mb-4">
                 Advanced AI solutions for medical diagnostics and healthcare improvement.

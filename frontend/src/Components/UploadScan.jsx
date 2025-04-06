@@ -384,7 +384,7 @@ const UploadScan = () => {
         className="w-64 bg-white shadow-lg hidden md:flex flex-col"
       >
         <div className="p-4 border-b">
-          <h2 className="text-xl font-bold text-blue-700">MedAI Scan</h2>
+          <h2 className="text-xl font-bold text-blue-700">MedVisor AI</h2>
           <p className="text-sm text-gray-500">AI-Powered Diagnostics</p>
         </div>
         

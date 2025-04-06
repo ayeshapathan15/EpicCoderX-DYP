@@ -7,6 +7,7 @@ import LoginPage from './Components/LoginPage';
 import Dashboard from './Components/Dashboard ';
 import UploadScan from './Components/UploadScan';
 import PDFComparison from './Components/PDFComparison';
+import PatientHistory from './Components/PatientHistory';
 // import CompareScan from './Components/CompareScan';
 // import ProtectedRoute from './Components/ProtectedRoute';
 
@@ -14,14 +15,15 @@ const App = () => {
   return (
     <Router>
       {/* <AnimatePresence mode="wait"> */}
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          {/* <Route path="/app" element={<Navigate to="/app/dashboard" replace />} /> */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/upload" element={<UploadScan />} />
-          <Route path="/compare" element={<PDFComparison />} />
-        </Routes>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        {/* <Route path="/app" element={<Navigate to="/app/dashboard" replace />} /> */}
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/upload" element={<UploadScan />} />
+        <Route path="/compare" element={<PDFComparison />} />
+        <Route path="/patient-history" element={<PatientHistory />} />
+      </Routes>
       {/* </AnimatePresence> */}
       {/* <Toaster /> */}
     </Router>

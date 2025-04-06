@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Layout, 
-  Upload, 
-  FileDiff, 
-  Users, 
-  History, 
-  LogOut, 
-  Bell, 
+import {
+  Layout,
+  Upload,
+  FileDiff,
+  Users,
+  History,
+  LogOut,
+  Bell,
   Search,
   FileText,
   Zap
@@ -17,7 +17,7 @@ import {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || {});
-  
+
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('user');
@@ -25,11 +25,11 @@ const Dashboard = () => {
   };
 
   const navigationItems = [
-    { icon: <Layout size={20} />, label: 'Dashboard', action: () => {} },
+    { icon: <Layout size={20} />, label: 'Dashboard', action: () => { } },
     { icon: <Upload size={20} />, label: 'Upload Scan', action: () => navigate('/upload') },
     { icon: <FileDiff size={20} />, label: 'Compare Scans', action: () => navigate('/compare') },
-    { icon: <Users size={20} />, label: 'Patient Records', action: () => {} },
-    { icon: <History size={20} />, label: 'History', action: () => {} },
+    { icon: <Users size={20} />, label: 'Patient Records', action: () => navigate('/patient-history') },
+    { icon: <History size={20} />, label: 'History', action: () => navigate('/patient-history') },
   ];
 
   const recentPatients = [
@@ -59,17 +59,17 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <motion.div 
+      <motion.div
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
         className="w-64 bg-white shadow-lg hidden md:flex flex-col"
       >
         <div className="p-4 border-b">
-          <h2 className="text-xl font-bold text-blue-700">MedAI Scan</h2>
+          <h2 className="text-xl font-bold text-blue-700">MedVisor AI</h2>
           <p className="text-sm text-gray-500">AI-Powered Diagnostics</p>
         </div>
-        
+
         <div className="p-4">
           <div className="flex items-center space-x-3 mb-6">
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
@@ -80,7 +80,7 @@ const Dashboard = () => {
               <p className="text-xs text-gray-500">{user.role || 'Radiologist'}</p>
             </div>
           </div>
-          
+
           <nav>
             <ul className="space-y-1">
               {navigationItems.map((item, index) => (
@@ -113,7 +113,7 @@ const Dashboard = () => {
           </nav>
         </div>
       </motion.div>
-      
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navigation */}
@@ -125,22 +125,22 @@ const Dashboard = () => {
               </button>
               <h2 className="ml-3 text-lg font-medium">Dashboard</h2>
             </div>
-            
+
             <div className="hidden md:flex items-center bg-gray-100 rounded-lg px-3 py-2 flex-1 max-w-md">
               <Search size={18} className="text-gray-500 mr-2" />
-              <input 
-                type="text" 
-                placeholder="Search patients or scans..." 
+              <input
+                type="text"
+                placeholder="Search patients or scans..."
                 className="bg-transparent border-0 outline-none flex-1 text-sm"
               />
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <button className="relative p-1 rounded-full hover:bg-gray-100">
                 <Bell size={20} className="text-gray-600" />
                 <span className="absolute top-0 right-0 block w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
-              
+
               <div className="md:hidden">
                 <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
                   {user.name ? user.name.charAt(0) : 'D'}
@@ -149,7 +149,7 @@ const Dashboard = () => {
             </div>
           </div>
         </header>
-        
+
         {/* Dashboard Content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <motion.div
@@ -159,7 +159,7 @@ const Dashboard = () => {
           >
             <h1 className="text-2xl font-bold text-gray-800 mb-6">Welcome back, {user.name?.split(' ')[0] || 'Doctor'}</h1>
           </motion.div>
-          
+
           {/* Quick Actions */}
           <section className="mb-8">
             <h2 className="text-lg font-medium text-gray-800 mb-4">Quick Actions</h2>
@@ -181,7 +181,7 @@ const Dashboard = () => {
                   <p className="text-blue-100">Upload medical scans for AI analysis</p>
                 </div>
               </motion.div>
-              
+
               <motion.div
                 custom={1}
                 variants={cardVariants}
@@ -199,7 +199,7 @@ const Dashboard = () => {
                   <p className="text-indigo-100">Track patient progress between scans</p>
                 </div>
               </motion.div>
-              
+
               <motion.div
                 custom={2}
                 variants={cardVariants}
@@ -218,7 +218,7 @@ const Dashboard = () => {
               </motion.div>
             </div>
           </section>
-          
+
           {/* Main Dashboard Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Recent Patients */}
@@ -244,7 +244,7 @@ const Dashboard = () => {
                   </thead>
                   <tbody>
                     {recentPatients.map((patient, index) => (
-                      <motion.tr 
+                      <motion.tr
                         key={patient.id}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -268,7 +268,7 @@ const Dashboard = () => {
                 <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">View All Patients</button>
               </div>
             </motion.section>
-            
+
             {/* Recent Activity */}
             <motion.section
               custom={4}
@@ -280,7 +280,7 @@ const Dashboard = () => {
               <h2 className="text-lg font-medium text-gray-800 mb-4">Recent Activity</h2>
               <ul className="space-y-4">
                 {recentActivities.map((activity, index) => (
-                  <motion.li 
+                  <motion.li
                     key={index}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -288,12 +288,12 @@ const Dashboard = () => {
                     className="flex items-start space-x-3"
                   >
                     <div className={`rounded-full w-8 h-8 flex items-center justify-center mt-1 
-                      ${activity.type === 'upload' ? 'bg-blue-100 text-blue-600' : 
-                        activity.type === 'analysis' ? 'bg-indigo-100 text-indigo-600' : 
-                        'bg-purple-100 text-purple-600'}`}>
-                      {activity.type === 'upload' ? <Upload size={16} /> : 
-                        activity.type === 'analysis' ? <Zap size={16} /> : 
-                        <FileDiff size={16} />}
+                        ${activity.type === 'upload' ? 'bg-blue-100 text-blue-600' :
+                        activity.type === 'analysis' ? 'bg-indigo-100 text-indigo-600' :
+                          'bg-purple-100 text-purple-600'}`}>
+                      {activity.type === 'upload' ? <Upload size={16} /> :
+                        activity.type === 'analysis' ? <Zap size={16} /> :
+                          <FileDiff size={16} />}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-800">{activity.details}</p>

@@ -34,8 +34,8 @@ const PDFComparison = () => {
     { icon: <Layout size={20} />, label: 'Dashboard', action: () => navigate('/dashboard') },
     { icon: <Upload size={20} />, label: 'Upload Scan', action: () => navigate('/upload') },
     { icon: <FileDiff size={20} />, label: 'Compare Scans', action: () => { } },
-    { icon: <Users size={20} />, label: 'Patient Records', action: () => navigate('/patients') },
-    { icon: <History size={20} />, label: 'History', action: () => navigate('/history') },
+    { icon: <Users size={20} />, label: 'Patient Records', action: () => navigate('/patient-history') },
+    { icon: <History size={20} />, label: 'History', action: () => navigate('/patient-history') },
   ];
 
   const handleLogout = () => {
@@ -339,7 +339,7 @@ const PDFComparison = () => {
           className="w-64 bg-white shadow-lg hidden md:flex flex-col"
         >
           <div className="p-4 border-b">
-            <h2 className="text-xl font-bold text-blue-700">MedAI Scan</h2>
+            <h2 className="text-xl font-bold text-blue-700">MedVisor AI</h2>
             <p className="text-sm text-gray-500">AI-Powered Diagnostics</p>
           </div>
 
