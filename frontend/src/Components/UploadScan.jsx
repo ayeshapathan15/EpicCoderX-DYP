@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react'; 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -15,14 +15,14 @@ import {
   Download,
   AlertTriangle,
   CheckCircle,
-  FileText,
+  FileText, 
   Clock,
-  Search
+  Search 
 } from 'lucide-react';
 
 const UploadScan = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || {});
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || {}); 
   const [files, setFiles] = useState([]);
   const [reportFile, setReportFile] = useState(null);
   const [reportText, setReportText] = useState('');

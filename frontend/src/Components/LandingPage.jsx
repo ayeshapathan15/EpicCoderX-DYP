@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from "react-router-dom";
 import { motion, useAnimation } from 'framer-motion';
 import { 
   ArrowRight, Brain, Activity, Users, FileText, 
@@ -102,11 +103,13 @@ const LandingPage = () => {
             <a href="#features" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Features</a>
             <a href="#usecases" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Use Cases</a>
             <a href="#technology" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Technology</a>
-            <a href="#contact" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Contact</a>
+           
           </div>
+          <a href="/login.html">
           <button className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium py-2 px-6 rounded-full shadow-md hover:shadow-lg transition-all">
-            Get Started
+            Login
           </button>
+          </a>
         </div>
       </nav>
 
@@ -130,14 +133,17 @@ const LandingPage = () => {
                 Advanced anomaly detection and collaborative tools for healthcare professionals
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+              <Link to="/dashboard">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 px-8 rounded-full shadow-lg flex items-center justify-center"
                 >
-                  Request Demo
+                  Launch Application
                   <ArrowRight className="ml-2" size={20} />
+                 
                 </motion.button>
+                </Link>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -145,6 +151,7 @@ const LandingPage = () => {
                 >
                   Learn More
                 </motion.button>
+               
               </div>
             </motion.div>
             
@@ -159,7 +166,7 @@ const LandingPage = () => {
                 <div className="relative bg-white/10 backdrop-blur-lg rounded-xl p-2 shadow-2xl overflow-hidden">
                   <div className="w-full h-80 md:h-96 rounded-lg overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
                     <img 
-                      src="/api/placeholder/600/400" 
+                      src="Images/mainpage.jpg" 
                       alt="Medical scan with AI analysis overlay" 
                       className="w-full h-full object-contain"
                     />
@@ -174,33 +181,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-12 bg-white">
-        <div className="container mx-auto px-6">
-          <motion.div 
-            initial="hidden"
-            animate={controls}
-            variants={{
-              visible: {
-                transition: { staggerChildren: 0.1 }
-              }
-            }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-8"
-          >
-            {stats.map((stat, index) => (
-              <motion.div
-                key={index}
-                variants={variants}
-                className="text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm"
-              >
-                <p className="text-3xl md:text-4xl font-bold text-blue-600 mb-2">{stat.value}</p>
-                <p className="text-gray-600 font-medium">{stat.label}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
+     
       {/* Features Section */}
       <section id="features" className="py-20 bg-gradient-to-b from-white to-blue-50">
         <div className="container mx-auto px-6">
@@ -296,7 +277,8 @@ const LandingPage = () => {
                 <div className="absolute -inset-4 bg-blue-400 rounded-2xl opacity-20 blur-lg"></div>
                 <div className="relative bg-white rounded-xl shadow-xl overflow-hidden">
                   <img 
-                    src="/api/placeholder/800/600" 
+                    src="Images/page2.jpeg" 
+                    
                     alt="AI analysis interface" 
                     className="w-full h-auto"
                   />
